@@ -10,7 +10,8 @@
 
 export const GOTN_VERSION = "0.1.0";
 
-// Placeholder exports - will be expanded with actual schemas and logic
+// Core exports
 export * from "./types.js";
+export * from "./fsStore.js";
 
 console.log(`GoTN Core v${GOTN_VERSION} loaded`);

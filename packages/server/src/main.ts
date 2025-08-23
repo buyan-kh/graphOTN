@@ -14,6 +14,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
+import { initStore, readGraph, isInitialized, appendJournal } from "@gotn/core";
 
 const server = new Server(
   {
@@ -136,23 +137,173 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   log(`Tool called: ${name} with args: ${JSON.stringify(args)}`);
 
-  // For now, all tools return a static success response
-  const result = {
-    ok: true,
-    tool: name,
-    message: `Tool ${name} executed successfully`,
-    timestamp: new Date().toISOString(),
-  };
+  try {
+    let result: any;
+
+    switch (name) {
+      case "gotn_index_workspace":
+        result = await handleIndexWorkspace(args as { workspace_path: string });
+        break;
+
+      case "gotn_store_node":
+        result = await handleStoreNode(args as { node: any });
+        break;
+
+      case "gotn_infer_edges":
+        result = await handleInferEdges(args as { node_id: string });
+        break;
+
+      case "gotn_compose_plan":
+        result = await handleComposePlan(args as { target_nodes: string[] });
+        break;
+
+      case "gotn_execute_node":
+        result = await handleExecuteNode(args as { node_id: string });
+        break;
+
+      case "gotn_trace_node":
+        result = await handleTraceNode(args as { node_id: string });
+        break;
+
+      default:
+        result = {
+          ok: false,
+          error: `Unknown tool: ${name}`,
+          timestamp: new Date().toISOString(),
+        };
+    }
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  } catch (error: any) {
+    log(`Tool ${name} failed: ${error.message}`);
+
+    const errorResult = {
+      ok: false,
+      tool: name,
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    };
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(errorResult, null, 2),
+        },
+      ],
+    };
+  }
+});
+
+// Tool handler implementations
+async function handleIndexWorkspace(args: { workspace_path: string }) {
+  const { workspace_path } = args;
+
+  log(`Initializing workspace: ${workspace_path}`);
+
+  // Check if already initialized
+  const alreadyInitialized = await isInitialized(workspace_path);
+
+  if (alreadyInitialized) {
+    log(`Workspace already initialized: ${workspace_path}`);
+    const graph = await readGraph(workspace_path);
+
+    return {
+      ok: true,
+      tool: "gotn_index_workspace",
+      message: "Workspace already initialized",
+      workspace_path,
+      nodes_count: graph.nodes.length,
+      edges_count: graph.edges.length,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  // Initialize the .gotn structure
+  await initStore(workspace_path);
+
+  // Log the initialization
+  await appendJournal(workspace_path, {
+    event: "workspace_initialized",
+    data: { workspace_path },
+  });
+
+  log(`Successfully initialized workspace: ${workspace_path}`);
 
   return {
-    content: [
-      {
-        type: "text",
-        text: JSON.stringify(result, null, 2),
-      },
+    ok: true,
+    tool: "gotn_index_workspace",
+    message: "Workspace initialized successfully",
+    workspace_path,
+    structure_created: [
+      ".gotn/",
+      ".gotn/meta.json",
+      ".gotn/graph.json",
+      ".gotn/journal.ndjson",
+      ".gotn/locks/",
+      ".gotn/runs/",
+      ".gotn/cache/",
     ],
+    timestamp: new Date().toISOString(),
   };
-});
+}
+
+async function handleStoreNode(args: { node: any }) {
+  // Placeholder - will be implemented in next step
+  return {
+    ok: true,
+    tool: "gotn_store_node",
+    message: "Node storage not yet implemented",
+    timestamp: new Date().toISOString(),
+  };
+}
+
+async function handleInferEdges(args: { node_id: string }) {
+  // Placeholder - will be implemented in next step
+  return {
+    ok: true,
+    tool: "gotn_infer_edges",
+    message: "Edge inference not yet implemented",
+    timestamp: new Date().toISOString(),
+  };
+}
+
+async function handleComposePlan(args: { target_nodes: string[] }) {
+  // Placeholder - will be implemented in next step
+  return {
+    ok: true,
+    tool: "gotn_compose_plan",
+    message: "Plan composition not yet implemented",
+    timestamp: new Date().toISOString(),
+  };
+}
+
+async function handleExecuteNode(args: { node_id: string }) {
+  // Placeholder - will be implemented in next step
+  return {
+    ok: true,
+    tool: "gotn_execute_node",
+    message: "Node execution not yet implemented",
+    timestamp: new Date().toISOString(),
+  };
+}
+
+async function handleTraceNode(args: { node_id: string }) {
+  // Placeholder - will be implemented in next step
+  return {
+    ok: true,
+    tool: "gotn_trace_node",
+    message: "Node tracing not yet implemented",
+    timestamp: new Date().toISOString(),
+  };
+}
 
 // Start the server
 async function main() {
