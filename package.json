@@ -11,6 +11,8 @@
     "build": "pnpm -r build",
     "dev": "pnpm --filter server dev",
     "clean": "pnpm -r clean",
+    "api": "cd api && npm run dev",
+    "viewer": "cd viewer && npm run dev",
     "type-check": "pnpm -r type-check"
   },
   "devDependencies": {

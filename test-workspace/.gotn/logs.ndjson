@@ -1,0 +1,6 @@
+{"t":"2025-08-23T22:16:56.818Z","level":"info","msg":"Test info message","data":{"test":"data"}}
+{"t":"2025-08-23T22:16:56.819Z","level":"warn","msg":"Test warning","data":{"level":"warning"}}
+{"t":"2025-08-23T22:16:56.819Z","level":"error","msg":"Test error","data":{"error":"test_error"}}
+{"t":"2025-08-23T22:16:56.822Z","level":"info","msg":"Starting recovery process","data":{"workspace":"./test-workspace"}}
+{"t":"2025-08-23T22:16:56.825Z","level":"info","msg":"Starting recovery process","data":{"workspace":"./test-workspace"}}
+{"t":"2025-08-23T22:16:56.825Z","level":"info","msg":"Found 1 journal entries"}
