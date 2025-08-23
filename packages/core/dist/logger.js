@@ -19,7 +19,7 @@ export class Logger {
             t: new Date().toISOString(),
             level,
             msg,
-            data
+            data,
         };
         try {
             await appendFile(this.logPath, JSON.stringify(entry) + "\n");

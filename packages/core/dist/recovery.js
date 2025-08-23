@@ -19,10 +19,12 @@ export class RecoveryEngine {
             skipped_entries: 0,
             corrupt_entries: [],
             success: false,
-            message: ""
+            message: "",
         };
         try {
-            await this.logger.info("Starting recovery process", { workspace: this.workspacePath });
+            await this.logger.info("Starting recovery process", {
+                workspace: this.workspacePath,
+            });
             // Ensure workspace exists
             if (!existsSync(this.workspacePath)) {
                 await initStore(this.workspacePath);
@@ -53,7 +55,7 @@ export class RecoveryEngine {
                     result.corrupt_entries.push(`${entry.event}: ${error.message}`);
                     await this.logger.warn("Skipped corrupt journal entry", {
                         event: entry.event,
-                        error: error.message
+                        error: error.message,
                     });
                 }
             }
@@ -61,7 +63,7 @@ export class RecoveryEngine {
             const recoveredGraph = {
                 nodes: Array.from(nodes.values()),
                 edges: Array.from(edges.values()),
-                version: 1
+                version: 1,
             };
             await writeGraph(this.workspacePath, recoveredGraph);
             result.success = true;
@@ -110,9 +112,9 @@ export class RecoveryEngine {
     }
     async verifyIntegrity() {
         try {
-            const graph = await import("./fsStore.js").then(m => m.readGraph(this.workspacePath));
+            const graph = await import("./fsStore.js").then((m) => m.readGraph(this.workspacePath));
             // Basic integrity checks
-            const nodeIds = new Set(graph.nodes.map(n => n.id));
+            const nodeIds = new Set(graph.nodes.map((n) => n.id));
             let validEdges = 0;
             for (const edge of graph.edges) {
                 if (nodeIds.has(edge.src) && nodeIds.has(edge.dst)) {
@@ -123,7 +125,7 @@ export class RecoveryEngine {
             return {
                 nodes: graph.nodes.length,
                 edges: validEdges,
-                valid
+                valid,
             };
         }
         catch (error) {

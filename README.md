@@ -138,6 +138,7 @@ Add to your Cursor MCP settings:
 ```
 
 **7. View in graph viewer:**
+
 ```bash
 # Start the viewer
 pnpm api    # Terminal 1
@@ -145,7 +146,7 @@ pnpm viewer # Terminal 2
 
 # Open http://localhost:4312
 # Click nodes to see details
-# Use filter to search  
+# Use filter to search
 # Click reload after changes
 ```
 
@@ -179,7 +180,7 @@ The monochrome React Flow viewer shows your graph:
 # Terminal 1: API server (serves graph data)
 pnpm api  # Runs on :4311
 
-# Terminal 2: Viewer (React Flow interface) 
+# Terminal 2: Viewer (React Flow interface)
 pnpm viewer  # Runs on :4312
 
 # Open http://localhost:4312 in your browser
@@ -247,6 +248,7 @@ Request timeout after 20s
 
 ## Next Steps
 
+- See `docs/cursor.md` for Cursor MCP integration setup
 - See `docs/schema.md` for data model details
 - See `docs/mcp.md` for complete tool reference
 - Try different prompts: web apps, CLIs, data pipelines, anything!

@@ -8,7 +8,7 @@ export class MetricsCollector {
     workspacePath;
     counters = {
         skips: 0,
-        guard_fails: 0
+        guard_fails: 0,
     };
     constructor(workspacePath = ".") {
         this.workspacePath = workspacePath;
@@ -29,7 +29,7 @@ export class MetricsCollector {
             if (existsSync(runsPath)) {
                 try {
                     const { readdirSync } = await import("fs");
-                    const runFolders = readdirSync(runsPath).filter(f => f.startsWith("run-"));
+                    const runFolders = readdirSync(runsPath).filter((f) => f.startsWith("run-"));
                     runCount = runFolders.length;
                 }
                 catch {
@@ -56,7 +56,7 @@ export class MetricsCollector {
                 storage_mode: storageMode,
                 vector_mode: vectorMode,
                 workspace_path: this.workspacePath,
-                last_updated: new Date().toISOString()
+                last_updated: new Date().toISOString(),
             };
         }
         catch (error) {
@@ -70,7 +70,7 @@ export class MetricsCollector {
                 storage_mode: "memory",
                 vector_mode: "none",
                 workspace_path: this.workspacePath,
-                last_updated: new Date().toISOString()
+                last_updated: new Date().toISOString(),
             };
         }
     }
