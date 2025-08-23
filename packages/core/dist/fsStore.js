@@ -6,20 +6,23 @@
  */
 import * as fs from "fs/promises";
 import * as path from "path";
+import { validateGraph, validateMeta, validateJournalEntry, validateNode, validateEdge, formatValidationError, } from "./schemas.js";
 // Lock management
 const writeLocks = new Map();
 /**
  * Ensures atomic write operations using temp file + rename + fsync pattern
  */
 async function atomicWrite(filePath, data) {
-    const tempPath = `${filePath}.tmp.${Date.now()}.${Math.random().toString(36).substr(2, 9)}`;
+    const tempPath = `${filePath}.tmp.${Date.now()}.${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
     try {
         // Write to temp file
-        await fs.writeFile(tempPath, data, { encoding: 'utf8' });
+        await fs.writeFile(tempPath, data, { encoding: "utf8" });
         // Atomic rename
         await fs.rename(tempPath, filePath);
         // Ensure data is flushed to disk
-        const fd = await fs.open(filePath, 'r+');
+        const fd = await fs.open(filePath, "r+");
         await fd.sync();
         await fd.close();
     }
@@ -59,16 +62,16 @@ export async function withWriteLock(lockKey, operation) {
  * Initialize .gotn storage structure
  */
 export async function initStore(workspacePath) {
-    const gotnPath = path.join(workspacePath, '.gotn');
+    const gotnPath = path.join(workspacePath, ".gotn");
     await withWriteLock(`init:${gotnPath}`, async () => {
         // Create directory structure
         await fs.mkdir(gotnPath, { recursive: true });
-        await fs.mkdir(path.join(gotnPath, 'locks'), { recursive: true });
-        await fs.mkdir(path.join(gotnPath, 'runs'), { recursive: true });
-        await fs.mkdir(path.join(gotnPath, 'cache'), { recursive: true });
+        await fs.mkdir(path.join(gotnPath, "locks"), { recursive: true });
+        await fs.mkdir(path.join(gotnPath, "runs"), { recursive: true });
+        await fs.mkdir(path.join(gotnPath, "cache"), { recursive: true });
         const now = new Date().toISOString();
         // Initialize meta.json
-        const metaPath = path.join(gotnPath, 'meta.json');
+        const metaPath = path.join(gotnPath, "meta.json");
         try {
             await fs.access(metaPath);
             // File exists, just update timestamp
@@ -87,7 +90,7 @@ export async function initStore(workspacePath) {
             await atomicWrite(metaPath, JSON.stringify(meta, null, 2));
         }
         // Initialize graph.json
-        const graphPath = path.join(gotnPath, 'graph.json');
+        const graphPath = path.join(gotnPath, "graph.json");
         try {
             await fs.access(graphPath);
             // File exists, don't overwrite
@@ -103,75 +106,113 @@ export async function initStore(workspacePath) {
             await atomicWrite(graphPath, JSON.stringify(graph, null, 2));
         }
         // Initialize journal.ndjson if it doesn't exist
-        const journalPath = path.join(gotnPath, 'journal.ndjson');
+        const journalPath = path.join(gotnPath, "journal.ndjson");
         try {
             await fs.access(journalPath);
             // File exists, don't overwrite
         }
         catch {
             // Create empty journal file
-            await atomicWrite(journalPath, '');
+            await atomicWrite(journalPath, "");
         }
     });
 }
 /**
- * Read meta.json
+ * Read meta.json with validation
  */
 export async function readMeta(workspacePath) {
-    const metaPath = path.join(workspacePath, '.gotn', 'meta.json');
-    const content = await fs.readFile(metaPath, 'utf8');
-    return JSON.parse(content);
+    const metaPath = path.join(workspacePath, ".gotn", "meta.json");
+    const content = await fs.readFile(metaPath, "utf8");
+    try {
+        const data = JSON.parse(content);
+        return validateMeta(data);
+    }
+    catch (error) {
+        if (error.name === "ZodError") {
+            throw new Error(`Invalid meta.json format: ${formatValidationError(error)}`);
+        }
+        throw error;
+    }
 }
 /**
- * Read graph.json
+ * Read graph.json with validation
  */
 export async function readGraph(workspacePath) {
-    const graphPath = path.join(workspacePath, '.gotn', 'graph.json');
-    const content = await fs.readFile(graphPath, 'utf8');
-    return JSON.parse(content);
+    const graphPath = path.join(workspacePath, ".gotn", "graph.json");
+    const content = await fs.readFile(graphPath, "utf8");
+    try {
+        const data = JSON.parse(content);
+        return validateGraph(data);
+    }
+    catch (error) {
+        if (error.name === "ZodError") {
+            throw new Error(`Invalid graph.json format: ${formatValidationError(error)}`);
+        }
+        throw error;
+    }
 }
 /**
- * Write graph.json atomically
+ * Write graph.json atomically with validation
  */
 export async function writeGraph(workspacePath, graph) {
-    const graphPath = path.join(workspacePath, '.gotn', 'graph.json');
+    const graphPath = path.join(workspacePath, ".gotn", "graph.json");
     await withWriteLock(`graph:${workspacePath}`, async () => {
         // Update version and timestamp
         graph.version += 1;
         graph.updated = new Date().toISOString();
+        // Validate before writing
+        try {
+            validateGraph(graph);
+        }
+        catch (error) {
+            if (error.name === "ZodError") {
+                throw new Error(`Invalid graph data: ${formatValidationError(error)}`);
+            }
+            throw error;
+        }
         // Write atomically
         await atomicWrite(graphPath, JSON.stringify(graph, null, 2));
     });
 }
 /**
- * Append entry to journal.ndjson
+ * Append entry to journal.ndjson with validation
  */
 export async function appendJournal(workspacePath, entry) {
-    const journalPath = path.join(workspacePath, '.gotn', 'journal.ndjson');
+    const journalPath = path.join(workspacePath, ".gotn", "journal.ndjson");
     await withWriteLock(`journal:${workspacePath}`, async () => {
         const fullEntry = {
             ...entry,
             timestamp: new Date().toISOString(),
             id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         };
-        const line = JSON.stringify(fullEntry) + '\n';
-        await fs.appendFile(journalPath, line, 'utf8');
+        // Validate before writing
+        try {
+            validateJournalEntry(fullEntry);
+        }
+        catch (error) {
+            if (error.name === "ZodError") {
+                throw new Error(`Invalid journal entry: ${formatValidationError(error)}`);
+            }
+            throw error;
+        }
+        const line = JSON.stringify(fullEntry) + "\n";
+        await fs.appendFile(journalPath, line, "utf8");
     });
 }
 /**
  * Read all journal entries
  */
 export async function readJournal(workspacePath) {
-    const journalPath = path.join(workspacePath, '.gotn', 'journal.ndjson');
+    const journalPath = path.join(workspacePath, ".gotn", "journal.ndjson");
     try {
-        const content = await fs.readFile(journalPath, 'utf8');
+        const content = await fs.readFile(journalPath, "utf8");
         return content
-            .split('\n')
-            .filter(line => line.trim())
-            .map(line => JSON.parse(line));
+            .split("\n")
+            .filter((line) => line.trim())
+            .map((line) => JSON.parse(line));
     }
     catch (error) {
-        if (error.code === 'ENOENT') {
+        if (error.code === "ENOENT") {
             return [];
         }
         throw error;
@@ -182,15 +223,225 @@ export async function readJournal(workspacePath) {
  */
 export async function isInitialized(workspacePath) {
     try {
-        const gotnPath = path.join(workspacePath, '.gotn');
+        const gotnPath = path.join(workspacePath, ".gotn");
         await fs.access(gotnPath);
         // Check required files
-        await fs.access(path.join(gotnPath, 'meta.json'));
-        await fs.access(path.join(gotnPath, 'graph.json'));
-        await fs.access(path.join(gotnPath, 'journal.ndjson'));
+        await fs.access(path.join(gotnPath, "meta.json"));
+        await fs.access(path.join(gotnPath, "graph.json"));
+        await fs.access(path.join(gotnPath, "journal.ndjson"));
         return true;
     }
     catch {
         return false;
     }
+}
+/**
+ * Recover graph from journal events
+ * Rebuilds graph.json from the append-only journal
+ */
+export async function recoverFromJournal(workspacePath) {
+    const journalPath = path.join(workspacePath, ".gotn", "journal.ndjson");
+    const graphPath = path.join(workspacePath, ".gotn", "graph.json");
+    console.error(`[GoTN Recovery] Starting recovery from journal: ${journalPath}`);
+    try {
+        // Read all journal entries
+        const journalEntries = await readJournal(workspacePath);
+        console.error(`[GoTN Recovery] Found ${journalEntries.length} journal entries`);
+        // Initialize empty graph
+        const recoveredGraph = {
+            nodes: [],
+            edges: [],
+            version: 1,
+            updated: new Date().toISOString(),
+        };
+        const nodeMap = new Map();
+        const edgeMap = new Map();
+        // Process journal entries in chronological order
+        for (const entry of journalEntries) {
+            try {
+                switch (entry.event) {
+                    case "add_node": {
+                        const nodeData = entry.data;
+                        if (nodeData.node) {
+                            const node = nodeData.node;
+                            nodeMap.set(node.id, node);
+                            console.error(`[GoTN Recovery] Added node: ${node.id}`);
+                        }
+                        break;
+                    }
+                    case "update_node": {
+                        const nodeData = entry.data;
+                        if (nodeData.node_id && nodeData.node) {
+                            const node = nodeData.node;
+                            nodeMap.set(node.id, node);
+                            console.error(`[GoTN Recovery] Updated node: ${node.id}`);
+                        }
+                        break;
+                    }
+                    case "add_edge": {
+                        const edgeData = entry.data;
+                        if (edgeData.edge) {
+                            const edge = edgeData.edge;
+                            const edgeKey = `${edge.src}->${edge.dst}`;
+                            edgeMap.set(edgeKey, edge);
+                            console.error(`[GoTN Recovery] Added edge: ${edgeKey}`);
+                        }
+                        break;
+                    }
+                    case "update_edge": {
+                        const edgeData = entry.data;
+                        if (edgeData.edge) {
+                            const edge = edgeData.edge;
+                            const edgeKey = `${edge.src}->${edge.dst}`;
+                            edgeMap.set(edgeKey, edge);
+                            console.error(`[GoTN Recovery] Updated edge: ${edgeKey}`);
+                        }
+                        break;
+                    }
+                    case "workspace_initialized":
+                    case "start_run":
+                    case "finish_run":
+                        // These events don't affect the graph structure
+                        break;
+                    default:
+                        console.error(`[GoTN Recovery] Unknown event type: ${entry.event}`);
+                }
+            }
+            catch (error) {
+                console.error(`[GoTN Recovery] Error processing entry ${entry.id}: ${error.message}`);
+                // Continue processing other entries
+            }
+        }
+        // Convert maps to arrays
+        recoveredGraph.nodes = Array.from(nodeMap.values());
+        recoveredGraph.edges = Array.from(edgeMap.values());
+        // Update version based on journal length
+        recoveredGraph.version = Math.max(1, journalEntries.length);
+        console.error(`[GoTN Recovery] Recovered graph with ${recoveredGraph.nodes.length} nodes and ${recoveredGraph.edges.length} edges`);
+        // Validate recovered graph
+        validateGraph(recoveredGraph);
+        // Write recovered graph atomically
+        await atomicWrite(graphPath, JSON.stringify(recoveredGraph, null, 2));
+        console.error(`[GoTN Recovery] Successfully recovered graph to: ${graphPath}`);
+    }
+    catch (error) {
+        console.error(`[GoTN Recovery] Recovery failed: ${error.message}`);
+        // If recovery fails, create a minimal valid graph
+        const minimalGraph = {
+            nodes: [],
+            edges: [],
+            version: 1,
+            updated: new Date().toISOString(),
+        };
+        await atomicWrite(graphPath, JSON.stringify(minimalGraph, null, 2));
+        console.error(`[GoTN Recovery] Created minimal graph as fallback`);
+    }
+}
+/**
+ * Add a node to the graph with journal logging
+ */
+export async function addNode(workspacePath, node) {
+    // Validate node before adding
+    const validatedNode = validateNode(node);
+    await withWriteLock(`graph:${workspacePath}`, async () => {
+        // Read current graph
+        const graph = await readGraph(workspacePath);
+        // Check if node already exists
+        const existingNodeIndex = graph.nodes.findIndex((n) => n.id === validatedNode.id);
+        if (existingNodeIndex >= 0) {
+            throw new Error(`Node with ID ${validatedNode.id} already exists`);
+        }
+        // Add node to graph
+        graph.nodes.push(validatedNode);
+        // Write updated graph
+        await writeGraph(workspacePath, graph);
+        // Log to journal
+        await appendJournal(workspacePath, {
+            event: "add_node",
+            data: { node: validatedNode },
+        });
+    });
+}
+/**
+ * Update an existing node in the graph with journal logging
+ */
+export async function updateNode(workspacePath, nodeId, node) {
+    // Validate node before updating
+    const validatedNode = validateNode(node);
+    if (validatedNode.id !== nodeId) {
+        throw new Error("Node ID cannot be changed during update");
+    }
+    await withWriteLock(`graph:${workspacePath}`, async () => {
+        // Read current graph
+        const graph = await readGraph(workspacePath);
+        // Find existing node
+        const existingNodeIndex = graph.nodes.findIndex((n) => n.id === nodeId);
+        if (existingNodeIndex === -1) {
+            throw new Error(`Node with ID ${nodeId} not found`);
+        }
+        // Update node in graph
+        graph.nodes[existingNodeIndex] = validatedNode;
+        // Write updated graph
+        await writeGraph(workspacePath, graph);
+        // Log to journal
+        await appendJournal(workspacePath, {
+            event: "update_node",
+            data: { node_id: nodeId, node: validatedNode },
+        });
+    });
+}
+/**
+ * Add an edge to the graph with journal logging
+ */
+export async function addEdge(workspacePath, edge) {
+    // Validate edge before adding
+    const validatedEdge = validateEdge(edge);
+    await withWriteLock(`graph:${workspacePath}`, async () => {
+        // Read current graph
+        const graph = await readGraph(workspacePath);
+        // Check if edge already exists
+        const existingEdgeIndex = graph.edges.findIndex((e) => e.src === validatedEdge.src &&
+            e.dst === validatedEdge.dst &&
+            e.type === validatedEdge.type);
+        if (existingEdgeIndex >= 0) {
+            throw new Error(`Edge from ${validatedEdge.src} to ${validatedEdge.dst} of type ${validatedEdge.type} already exists`);
+        }
+        // Add edge to graph
+        graph.edges.push(validatedEdge);
+        // Write updated graph
+        await writeGraph(workspacePath, graph);
+        // Log to journal
+        await appendJournal(workspacePath, {
+            event: "add_edge",
+            data: { edge: validatedEdge },
+        });
+    });
+}
+/**
+ * Update an existing edge in the graph with journal logging
+ */
+export async function updateEdge(workspacePath, src, dst, edge) {
+    // Validate edge before updating
+    const validatedEdge = validateEdge(edge);
+    if (validatedEdge.src !== src || validatedEdge.dst !== dst) {
+        throw new Error("Edge source and destination cannot be changed during update");
+    }
+    await withWriteLock(`graph:${workspacePath}`, async () => {
+        // Read current graph
+        const graph = await readGraph(workspacePath);
+        // Find existing edge
+        const existingEdgeIndex = graph.edges.findIndex((e) => e.src === src && e.dst === dst);
+        if (existingEdgeIndex === -1) {
+            throw new Error(`Edge from ${src} to ${dst} not found`);
+        }
+        // Update edge in graph
+        graph.edges[existingEdgeIndex] = validatedEdge;
+        // Write updated graph
+        await writeGraph(workspacePath, graph);
+        // Log to journal
+        await appendJournal(workspacePath, {
+            event: "update_edge",
+            data: { edge_src: src, edge_dst: dst, edge: validatedEdge },
+        });
+    });
 }

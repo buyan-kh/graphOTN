@@ -9,13 +9,28 @@
     "build": "tsc",
     "dev": "tsc --watch --preserveWatchOutput",
     "clean": "rm -rf dist",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "embed": "tsx bin/embed.ts",
+    "embed:dev": "tsx bin/embed.ts",
+    "vector-test": "tsx bin/vector-test.ts",
+    "zilliz-test": "tsx bin/zilliz-test.ts",
+    "factory-test": "tsx bin/vector-factory-test.ts",
+    "test:with-env": "tsx load-env.js && vitest run"
+  },
+  "bin": {
+    "gotn-embed": "bin/embed.ts"
   },
   "dependencies": {
-    "@gotn/core": "workspace:*"
+    "@gotn/core": "workspace:*",
+    "@zilliz/milvus2-sdk-node": "^2.6.0",
+    "openai": "^5.15.0"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.20.4",
     "typescript": "^5.3.0",
-    "@types/node": "^20.0.0"
+    "vitest": "^3.2.4"
   }
 }

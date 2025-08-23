@@ -9,7 +9,7 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
-import { initStore, readGraph, isInitialized, appendJournal } from "@gotn/core";
+import { initStore, readGraph, isInitialized, appendJournal, recoverFromJournal, addNode, } from "@gotn/core";
 const server = new Server({
     name: "gotn-server",
     version: "0.1.0",
@@ -47,6 +47,10 @@ const GOTN_TOOLS = [
                 node: {
                     type: "object",
                     description: "Node data to store",
+                },
+                workspace_path: {
+                    type: "string",
+                    description: "Path to the workspace (optional, defaults to current directory)",
                 },
             },
             required: ["node"],
@@ -184,19 +188,54 @@ async function handleIndexWorkspace(args) {
     const alreadyInitialized = await isInitialized(workspace_path);
     if (alreadyInitialized) {
         log(`Workspace already initialized: ${workspace_path}`);
-        const graph = await readGraph(workspace_path);
-        return {
-            ok: true,
-            tool: "gotn_index_workspace",
-            message: "Workspace already initialized",
-            workspace_path,
-            nodes_count: graph.nodes.length,
-            edges_count: graph.edges.length,
-            timestamp: new Date().toISOString(),
-        };
+        // Check if graph.json exists and is valid, recover if needed
+        try {
+            const graph = await readGraph(workspace_path);
+            return {
+                ok: true,
+                tool: "gotn_index_workspace",
+                message: "Workspace already initialized",
+                workspace_path,
+                nodes_count: graph.nodes.length,
+                edges_count: graph.edges.length,
+                timestamp: new Date().toISOString(),
+            };
+        }
+        catch (error) {
+            log(`Graph corrupted or missing, attempting recovery: ${error.message}`);
+            // Attempt recovery from journal
+            try {
+                await recoverFromJournal(workspace_path);
+                log(`Successfully recovered graph from journal`);
+                const recoveredGraph = await readGraph(workspace_path);
+                return {
+                    ok: true,
+                    tool: "gotn_index_workspace",
+                    message: "Workspace recovered from journal",
+                    workspace_path,
+                    nodes_count: recoveredGraph.nodes.length,
+                    edges_count: recoveredGraph.edges.length,
+                    recovery_performed: true,
+                    timestamp: new Date().toISOString(),
+                };
+            }
+            catch (recoveryError) {
+                log(`Recovery failed: ${recoveryError.message}`);
+                throw new Error(`Workspace corrupted and recovery failed: ${recoveryError.message}`);
+            }
+        }
     }
     // Initialize the .gotn structure
     await initStore(workspace_path);
+    // Ensure recovery is available after initialization
+    try {
+        await recoverFromJournal(workspace_path);
+        log(`Post-initialization recovery check completed`);
+    }
+    catch (error) {
+        // Recovery after fresh init should not fail, but don't block initialization
+        log(`Post-initialization recovery check failed (non-critical): ${error.message}`);
+    }
     // Log the initialization
     await appendJournal(workspace_path, {
         event: "workspace_initialized",
@@ -221,13 +260,31 @@ async function handleIndexWorkspace(args) {
     };
 }
 async function handleStoreNode(args) {
-    // Placeholder - will be implemented in next step
-    return {
-        ok: true,
-        tool: "gotn_store_node",
-        message: "Node storage not yet implemented",
-        timestamp: new Date().toISOString(),
-    };
+    const { node, workspace_path } = args;
+    // Use current directory as default workspace if not provided
+    const workspacePath = workspace_path || process.cwd();
+    log(`Storing node: ${JSON.stringify(node)} in workspace: ${workspacePath}`);
+    try {
+        // Ensure workspace is initialized
+        if (!(await isInitialized(workspacePath))) {
+            throw new Error("Workspace not initialized. Run gotn_index_workspace first.");
+        }
+        // Add node to graph with journal logging
+        await addNode(workspacePath, node);
+        log(`Successfully stored node: ${node.id}`);
+        return {
+            ok: true,
+            tool: "gotn_store_node",
+            message: "Node stored successfully",
+            node_id: node.id,
+            workspace_path: workspacePath,
+            timestamp: new Date().toISOString(),
+        };
+    }
+    catch (error) {
+        log(`Failed to store node: ${error.message}`);
+        throw error;
+    }
 }
 async function handleInferEdges(args) {
     // Placeholder - will be implemented in next step

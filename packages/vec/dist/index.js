@@ -1,14 +1,8 @@
 /**
- * GoTN Vector Store Package
+ * GoTN Vector Package
  *
- * This package handles:
- * - Embedding generation and storage
- * - Vector similarity search
- * - Zilliz integration with local fallback
- * - Semantic edge inference
+ * Exports embeddings interface and implementations, vector store interface and implementations, Zilliz client
  */
-import { GOTN_VERSION } from "@gotn/core";
-export const VEC_VERSION = "0.1.0";
-// Placeholder exports - will be expanded with vector store functionality
-export * from "./types.js";
-console.log(`GoTN Vec v${VEC_VERSION} loaded (Core: ${GOTN_VERSION})`);
+export * from "./embeddings.js";
+export * from "./vectorStore.js";
+export * from "./zilliz.js";
