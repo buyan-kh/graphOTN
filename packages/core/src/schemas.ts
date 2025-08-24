@@ -222,6 +222,11 @@ export type Artifacts = z.infer<typeof ArtifactsSchema>;
 export type NodeStatus = z.infer<typeof NodeStatusSchema>;
 export type EdgeType = z.infer<typeof EdgeTypeSchema>;
 
+// Raw types for API compatibility
+export type RawNode = Node;
+export type RawEdge = Edge;
+export type GraphPayload = Graph;
+
 // Journal event type exports
 export type JournalEventType = z.infer<typeof JournalEventTypeSchema>;
 export type AddNodeEventData = z.infer<typeof AddNodeEventDataSchema>;

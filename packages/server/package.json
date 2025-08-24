@@ -6,9 +6,12 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc",
+    "build:cloud": "tsc src/cloudMain.ts --outDir dist --target es2022 --module es2022 --moduleResolution node --esModuleInterop true --allowSyntheticDefaultImports true --skipLibCheck true",
     "dev": "tsc --watch --preserveWatchOutput",
+    "dev:cloud": "tsx watch src/cloudMain.ts",
     "clean": "rm -rf dist",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "start:cloud": "node dist/cloudMain.js"
   },
   "dependencies": {
     "@gotn/core": "workspace:*",

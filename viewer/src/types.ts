@@ -1,51 +1,43 @@
-export interface GoTNNode {
+export type RawNode = {
   id: string;
-  kind: string;
-  summary: string;
-  prompt_text: string;
-  parent?: string;
-  children: string[];
-  requires: string[];
-  produces: string[];
-  exec_target: string;
-  embedding_ref?: {
-    collection: string;
-    id: string;
-  };
-  tags: string[];
-  success_criteria: string[];
-  guards: string[];
-  artifacts: {
-    files: string[];
-    outputs: string[];
-    dependencies: string[];
-  };
-  status: 'ready' | 'completed' | 'skipped' | 'failed';
-  provenance: {
-    created_by: string;
-    source: string;
-  };
-  version: number;
-  created_at: string;
-  updated_at: string;
-}
+  summary?: string;
+  [k: string]: any;
+};
 
-export interface GoTNEdge {
+export type RawEdge = {
   src: string;
   dst: string;
-  type: 'hard_requires' | 'soft_semantic' | 'derived_from';
-  score?: number | null;
-  evidence: string;
-  provenance: {
-    created_by: string;
-    source: string;
-  };
-  version: number;
-  created_at: string;
-}
+  type?: string;
+  score?: number;
+  [k: string]: any;
+};
 
-export interface GoTNGraph {
-  nodes: GoTNNode[];
-  edges: GoTNEdge[];
-  version: number;
-}
+export type GraphPayload = {
+  nodes: RawNode[];
+  edges: RawEdge[];
+};
+
+export type LayoutMode = "TD" | "LR";
+
+export type AppState = {
+  graph: GraphPayload | null;
+  filteredIds: Set<string>;
+  selectedNodeId: string | null;
+  lastLoadedAt: number;
+  layoutMode: LayoutMode;
+  error: string | null;
+  isLoading: boolean;
+  showLegend: boolean;
+  searchQuery: string;
+};
+
+export type NodePosition = {
+  x: number;
+  y: number;
+};
+
+export type LayoutResult = {
+  positions: Record<string, NodePosition>;
+  layers: string[][];
+  hasCycle: boolean;
+};

@@ -8,6 +8,31 @@
  * dependency graphs with semantic search capabilities.
  */
 
+// Load environment variables from project root .env file
+import { readFileSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const projectRoot = join(__dirname, "..", "..", "..");
+
+try {
+  const envPath = join(projectRoot, ".env");
+  const envContent = readFileSync(envPath, "utf8");
+
+  envContent.split("\n").forEach((line) => {
+    const match = line.match(/^([^=]+)=(.*)$/);
+    if (match) {
+      const [, key, value] = match;
+      if (!process.env[key]) {
+        process.env[key] = value;
+      }
+    }
+  });
+} catch (error) {
+  // .env file not found or not readable - this is okay
+}
+
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -15,14 +40,8 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import {
-  initStore,
-  readGraph,
-  isInitialized,
-  appendJournal,
-  recoverFromJournal,
-  addNode,
-  getNodeStore,
-  NodeStore,
+  getCloudStore,
+  CloudStore,
   getEdgeEngine,
   EdgeEngine,
   getBreakdownEngine,
@@ -33,7 +52,6 @@ import {
   GuardEngine,
   getLogger,
   getMetrics,
-  getRecoveryEngine,
 } from "@gotn/core";
 
 const server = new Server(
@@ -56,22 +74,26 @@ const log = (message: string) => {
 // Tool definitions
 const GOTN_TOOLS = [
   {
-    name: "gotn_index_workspace",
-    description: "Creates .gotn and seeds minimal nodes",
+    name: "gotn_init_project",
+    description: "Initialize a new GoTN project in the cloud",
     inputSchema: {
       type: "object",
       properties: {
-        workspace_path: {
+        project_id: {
           type: "string",
-          description: "Path to the workspace to index",
+          description: "Unique identifier for the project",
+        },
+        project_name: {
+          type: "string",
+          description: "Human-readable name for the project (optional)",
         },
       },
-      required: ["workspace_path"],
+      required: ["project_id"],
     },
   },
   {
     name: "gotn_store_node",
-    description: "Validates and persists a node and its embedding",
+    description: "Validates and persists a node and its embedding in the cloud",
     inputSchema: {
       type: "object",
       properties: {
@@ -79,13 +101,12 @@ const GOTN_TOOLS = [
           type: "object",
           description: "Node data to store",
         },
-        workspace_path: {
+        project_id: {
           type: "string",
-          description:
-            "Path to the workspace (optional, defaults to current directory)",
+          description: "Project identifier",
         },
       },
-      required: ["node"],
+      required: ["node", "project_id"],
     },
   },
   {

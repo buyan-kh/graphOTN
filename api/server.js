@@ -1,7 +1,7 @@
-import express from 'express';
-import cors from 'cors';
-import { readFileSync, existsSync } from 'fs';
-import path from 'path';
+import express from "express";
+import cors from "cors";
+import { readFileSync, existsSync } from "fs";
+import path from "path";
 
 const app = express();
 const PORT = 4311;
@@ -29,11 +29,11 @@ const stubGraph = {
       provenance: { created_by: "stub", source: "demo" },
       version: 1,
       created_at: "2025-01-27T10:00:00Z",
-      updated_at: "2025-01-27T10:00:00Z"
+      updated_at: "2025-01-27T10:00:00Z",
     },
     {
       id: "setup_frontend",
-      kind: "micro_prompt", 
+      kind: "micro_prompt",
       summary: "Initialize React frontend",
       prompt_text: "Create React app with TypeScript and basic routing",
       children: [],
@@ -43,17 +43,21 @@ const stubGraph = {
       tags: ["react", "frontend"],
       success_criteria: ["React app runs"],
       guards: ["Node.js available"],
-      artifacts: { files: ["frontend/package.json"], outputs: [], dependencies: [] },
+      artifacts: {
+        files: ["frontend/package.json"],
+        outputs: [],
+        dependencies: [],
+      },
       status: "ready",
       provenance: { created_by: "stub", source: "demo" },
       version: 1,
       created_at: "2025-01-27T10:01:00Z",
-      updated_at: "2025-01-27T10:01:00Z"
+      updated_at: "2025-01-27T10:01:00Z",
     },
     {
       id: "setup_backend",
       kind: "micro_prompt",
-      summary: "Initialize Express backend", 
+      summary: "Initialize Express backend",
       prompt_text: "Create Express server with basic middleware",
       children: [],
       requires: ["project_initialized"],
@@ -62,18 +66,23 @@ const stubGraph = {
       tags: ["express", "backend"],
       success_criteria: ["Server starts on port 3000"],
       guards: ["Node.js available"],
-      artifacts: { files: ["backend/server.js"], outputs: [], dependencies: [] },
+      artifacts: {
+        files: ["backend/server.js"],
+        outputs: [],
+        dependencies: [],
+      },
       status: "ready",
       provenance: { created_by: "stub", source: "demo" },
       version: 1,
       created_at: "2025-01-27T10:02:00Z",
-      updated_at: "2025-01-27T10:02:00Z"
+      updated_at: "2025-01-27T10:02:00Z",
     },
     {
       id: "connect_services",
       kind: "micro_prompt",
       summary: "Connect frontend to backend",
-      prompt_text: "Set up API calls and data flow between frontend and backend",
+      prompt_text:
+        "Set up API calls and data flow between frontend and backend",
       children: [],
       requires: ["frontend_ready", "backend_ready"],
       produces: ["services_connected"],
@@ -81,12 +90,16 @@ const stubGraph = {
       tags: ["integration", "api"],
       success_criteria: ["API calls work"],
       guards: ["Both services running"],
-      artifacts: { files: ["frontend/src/api/client.js"], outputs: [], dependencies: [] },
+      artifacts: {
+        files: ["frontend/src/api/client.js"],
+        outputs: [],
+        dependencies: [],
+      },
       status: "ready",
       provenance: { created_by: "stub", source: "demo" },
       version: 1,
       created_at: "2025-01-27T10:03:00Z",
-      updated_at: "2025-01-27T10:03:00Z"
+      updated_at: "2025-01-27T10:03:00Z",
     },
     {
       id: "deploy_app",
@@ -100,13 +113,17 @@ const stubGraph = {
       tags: ["deployment", "production"],
       success_criteria: ["App accessible via URL"],
       guards: ["All tests pass"],
-      artifacts: { files: ["deploy/config.yml"], outputs: [], dependencies: [] },
+      artifacts: {
+        files: ["deploy/config.yml"],
+        outputs: [],
+        dependencies: [],
+      },
       status: "ready",
       provenance: { created_by: "stub", source: "demo" },
       version: 1,
       created_at: "2025-01-27T10:04:00Z",
-      updated_at: "2025-01-27T10:04:00Z"
-    }
+      updated_at: "2025-01-27T10:04:00Z",
+    },
   ],
   edges: [
     {
@@ -117,47 +134,50 @@ const stubGraph = {
       evidence: "Parent-child decomposition relationship",
       provenance: { created_by: "stub", source: "demo" },
       version: 1,
-      created_at: "2025-01-27T10:01:00Z"
+      created_at: "2025-01-27T10:01:00Z",
     },
     {
-      src: "web_app_root", 
+      src: "web_app_root",
       dst: "setup_backend",
       type: "derived_from",
       score: null,
       evidence: "Parent-child decomposition relationship",
       provenance: { created_by: "stub", source: "demo" },
       version: 1,
-      created_at: "2025-01-27T10:02:00Z"
+      created_at: "2025-01-27T10:02:00Z",
     },
     {
       src: "setup_frontend",
       dst: "connect_services",
       type: "hard_requires",
       score: null,
-      evidence: "connect_services requires 'frontend_ready' which setup_frontend produces",
+      evidence:
+        "connect_services requires 'frontend_ready' which setup_frontend produces",
       provenance: { created_by: "stub", source: "demo" },
       version: 1,
-      created_at: "2025-01-27T10:03:00Z"
+      created_at: "2025-01-27T10:03:00Z",
     },
     {
       src: "setup_backend",
-      dst: "connect_services", 
+      dst: "connect_services",
       type: "hard_requires",
       score: null,
-      evidence: "connect_services requires 'backend_ready' which setup_backend produces",
+      evidence:
+        "connect_services requires 'backend_ready' which setup_backend produces",
       provenance: { created_by: "stub", source: "demo" },
       version: 1,
-      created_at: "2025-01-27T10:03:00Z"
+      created_at: "2025-01-27T10:03:00Z",
     },
     {
       src: "connect_services",
       dst: "deploy_app",
       type: "hard_requires",
       score: null,
-      evidence: "deploy_app requires 'services_connected' which connect_services produces",
+      evidence:
+        "deploy_app requires 'services_connected' which connect_services produces",
       provenance: { created_by: "stub", source: "demo" },
       version: 1,
-      created_at: "2025-01-27T10:04:00Z"
+      created_at: "2025-01-27T10:04:00Z",
     },
     {
       src: "setup_frontend",
@@ -167,38 +187,96 @@ const stubGraph = {
       evidence: "Semantic similarity: both are setup tasks",
       provenance: { created_by: "stub", source: "demo" },
       version: 1,
-      created_at: "2025-01-27T10:05:00Z"
-    }
+      created_at: "2025-01-27T10:05:00Z",
+    },
   ],
-  version: 1
+  version: 1,
 };
 
-// GET /graph endpoint
-app.get('/graph', (req, res) => {
+// GET /graph endpoint with workspace support
+app.get("/graph", (req, res) => {
+  const workspace = req.query.workspace || process.cwd();
+
   try {
-    // Try to read real graph from .gotn
-    const graphPath = path.join(process.cwd(), '.gotn', 'graph.json');
-    
+    // Try to read real graph from specified workspace
+    const graphPath = path.join(workspace, ".gotn", "graph.json");
+
     if (existsSync(graphPath)) {
-      const graphData = readFileSync(graphPath, 'utf8');
+      const graphData = readFileSync(graphPath, "utf8");
       const graph = JSON.parse(graphData);
-      
-      console.log(`📊 Serving real graph: ${graph.nodes.length} nodes, ${graph.edges.length} edges`);
-      res.json(graph);
+
+      console.log(
+        `📊 Serving graph from ${workspace}: ${graph.nodes.length} nodes, ${graph.edges.length} edges`
+      );
+      res.json({ ...graph, workspace });
     } else {
-      console.log('📋 No .gotn found, serving stub graph');
-      res.json(stubGraph);
+      console.log(`📋 No .gotn found in ${workspace}, serving stub graph`);
+      res.json({ ...stubGraph, workspace: "demo" });
     }
   } catch (error) {
-    console.error('❌ Error reading graph:', error.message);
-    console.log('📋 Falling back to stub graph');
-    res.json(stubGraph);
+    console.error("❌ Error reading graph:", error.message);
+    console.log("📋 Falling back to stub graph");
+    res.json({ ...stubGraph, workspace: "demo" });
+  }
+});
+
+// GET /workspaces endpoint to list available workspaces
+app.get("/workspaces", (req, res) => {
+  try {
+    const searchDir = req.query.searchDir || process.env.HOME || "/Users";
+    const workspaces = [];
+
+    // Simple workspace discovery - look for .gotn folders
+    const findWorkspaces = (dir, depth = 0) => {
+      if (depth > 3) return; // Limit search depth
+
+      try {
+        const entries = readFileSync
+          ? require("fs").readdirSync(dir, { withFileTypes: true })
+          : [];
+
+        for (const entry of entries) {
+          if (
+            entry.isDirectory() &&
+            !entry.name.startsWith(".") &&
+            entry.name !== "node_modules"
+          ) {
+            const fullPath = path.join(dir, entry.name);
+
+            // Check if this directory has .gotn
+            if (existsSync(path.join(fullPath, ".gotn"))) {
+              workspaces.push({
+                name: entry.name,
+                path: fullPath,
+                hasGraph: existsSync(
+                  path.join(fullPath, ".gotn", "graph.json")
+                ),
+              });
+            } else if (depth < 2) {
+              // Recurse into subdirectories
+              findWorkspaces(fullPath, depth + 1);
+            }
+          }
+        }
+      } catch (error) {
+        // Skip directories we can't read
+        return;
+      }
+    };
+
+    findWorkspaces(searchDir);
+
+    console.log(`🔍 Found ${workspaces.length} workspaces`);
+    res.json({ workspaces });
+  } catch (error) {
+    console.error("❌ Error finding workspaces:", error.message);
+    res.json({ workspaces: [] });
   }
 });
 
 // Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 app.listen(PORT, () => {

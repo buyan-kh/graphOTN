@@ -20,4 +20,6 @@ export * from "./guardEngine.js";
 export * from "./logger.js";
 export * from "./metrics.js";
 export * from "./recovery.js";
+export * from "./cloudStore.js";
+export * from "./cloudBreakdownEngine.js";
 console.log(`GoTN Core v${GOTN_VERSION} loaded`);
